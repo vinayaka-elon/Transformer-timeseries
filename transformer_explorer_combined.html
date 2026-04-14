@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimeSeriesTransformer Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#f8f9fb;}
+body{font-family:'IBM Plex Sans',sans-serif;color:#1e293b;display:flex;flex-direction:column;}
+
+#topbar{height:46px;min-height:46px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;padding:0 16px;gap:0;flex-shrink:0;z-index:10;}
+.tb-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#0f172a;letter-spacing:.04em;white-space:nowrap;padding-right:16px;border-right:1px solid #e2e8f0;}
+.tab-bar{display:flex;gap:3px;padding:0 14px;border-right:1px solid #e2e8f0;}
+.tab-btn{padding:4px 11px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;cursor:pointer;border:1px solid #e2e8f0;background:transparent;color:#64748b;transition:all .12s;white-space:nowrap;}
+.tab-btn:hover{background:#f1f5f9;color:#1e293b;}
+.tab-btn.active{background:#1e293b;color:#fff;border-color:#1e293b;}
+.tb-controls{display:flex;align-items:center;gap:12px;padding:0 14px;flex:1;}
+.ctrl-group{display:flex;align-items:center;gap:7px;font-size:11px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;}
+.ctrl-group label{color:#64748b;}
+input[type=range]{width:85px;height:3px;accent-color:#3b82f6;cursor:pointer;}
+.ctrl-val{min-width:22px;text-align:center;color:#0f172a;font-weight:600;}
+.btn-nav{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.btn-nav:hover{background:#e2e8f0;color:#1e293b;}
+.tb-metrics{display:flex;gap:12px;padding-left:14px;border-left:1px solid #e2e8f0;flex-shrink:0;}
+.metric{font-size:10.5px;font-family:'IBM Plex Mono',monospace;}
+.metric-label{color:#94a3b8;}.metric-val{color:#2563eb;font-weight:600;margin-left:3px;}
+
+#main{display:flex;flex:1;min-height:0;}
+
+#lpanel{width:180px;min-width:180px;background:#fff;border-right:1px solid #e2e8f0;overflow-y:auto;padding:12px 12px;display:flex;flex-direction:column;gap:12px;}
+.lp-section-title{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#94a3b8;font-family:'IBM Plex Mono',monospace;margin-bottom:5px;}
+.lp-card{background:#f8f9fb;border:1px solid #e2e8f0;border-radius:6px;padding:9px 10px;}
+.feat-row{display:flex;align-items:center;gap:5px;font-size:10px;color:#64748b;font-family:'IBM Plex Mono',monospace;margin:2px 0;}
+.feat-name{flex:1;}.feat-val{color:#1e293b;text-align:right;}
+.hyp-row{display:flex;justify-content:space-between;font-size:10.5px;font-family:'IBM Plex Mono',monospace;padding:3px 0;border-bottom:1px solid #f1f5f9;}
+.hyp-row:last-child{border-bottom:none;}
+.hyp-key{color:#94a3b8;}.hyp-val{color:#2563eb;font-weight:600;}
+
+#cpanel{flex:1;overflow-x:auto;overflow-y:auto;background:#f8f9fb;padding:18px 22px;}
+
+#intro{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px 12px;margin-bottom:16px;}
+.intro-heading{font-family:'IBM Plex Serif',serif;font-size:13.5px;font-weight:400;color:#0f172a;margin-bottom:4px;}
+.intro-body{font-family:Georgia,serif;font-size:11.5px;line-height:1.75;color:#475569;margin-bottom:10px;}
+.intro-cards{display:flex;gap:7px;}
+.icard{flex:1;border-radius:6px;padding:8px 10px;border:1px solid transparent;}
+.icard-title{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;margin-bottom:4px;letter-spacing:.04em;}
+.icard-list{font-family:'IBM Plex Sans',sans-serif;font-size:10px;line-height:1.65;list-style:none;}
+.icard-list li::before{content:'-- ';opacity:.5;}
+.tag-good{color:#15803d;background:#f0fdf4;border-radius:2px;padding:0 3px;font-size:9px;}
+.tag-bad{color:#b91c1c;background:#fef2f2;border-radius:2px;padding:0 3px;font-size:9px;}
+
+#flow-section{margin-bottom:4px;}
+.flow-section-bar{display:flex;min-width:max-content;gap:0;margin-bottom:3px;}
+.flow-section-badge{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;text-align:center;padding:1px 0;}
+#flow{display:flex;align-items:flex-start;gap:0;min-width:max-content;}
+
+.layer-col{flex-shrink:0;border-radius:7px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;transition:border-color .15s,background .15s;padding:10px;position:relative;}
+.layer-col:hover{border-color:#cbd5e1;background:#f8faff;}
+.layer-col.active{border-color:var(--accent,#3b82f6)!important;background:#f8faff!important;box-shadow:0 0 0 2px var(--accent,#3b82f6)18;}
+.lc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.lc-name{font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:#1e293b;letter-spacing:.02em;}
+.lc-badge{font-size:8.5px;font-family:'IBM Plex Mono',monospace;padding:1px 4px;border-radius:3px;font-weight:600;}
+canvas.lc-canvas{display:block;border-radius:3px;image-rendering:pixelated;}
+.canvas-label{font-size:7.5px;font-family:'IBM Plex Mono',monospace;color:#94a3b8;margin:2px 0 1px;letter-spacing:.03em;}
+.lc-shape{font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:#94a3b8;margin-top:5px;text-align:center;}
+.lc-params{font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:#bfdbfe;text-align:center;margin-top:1px;}
+
+.connector{width:34px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:52px;}
+.memory-connector{width:42px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:52px;}
+.conn-shape{font-size:7.5px;font-family:'IBM Plex Mono',monospace;color:#cbd5e1;text-align:center;margin-bottom:3px;line-height:1.4;max-width:38px;word-break:break-all;}
+.conn-arrow{width:100%;display:flex;align-items:center;}
+.conn-line{flex:1;height:1px;background:#e2e8f0;}
+.conn-line-mem{flex:1;height:1px;background:#fde68a;}
+.conn-tip{width:0;height:0;border-top:3px solid transparent;border-bottom:3px solid transparent;border-left:5px solid #e2e8f0;}
+.conn-tip-mem{border-left-color:#f59e0b;}
+.memory-conn-label{font-size:7.5px;font-family:'IBM Plex Mono',monospace;color:#d97706;text-align:center;background:#fffbeb;border:1px solid #fde68a;border-radius:3px;padding:1px 4px;margin-bottom:3px;white-space:nowrap;}
+
+#section3d{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 14px 9px;margin-top:14px;}
+#section3d-label{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+#canvas3d{display:block;width:100%;border-radius:4px;}
+
+#rpanel{width:308px;min-width:308px;background:#fff;overflow-y:auto;padding:20px 22px;border-left:1px solid #e2e8f0;}
+.rp-title{font-family:'IBM Plex Serif',serif;font-size:20px;font-weight:400;color:#0f172a;margin-bottom:2px;letter-spacing:-.01em;}
+.rp-subtitle{font-size:11px;color:#94a3b8;font-style:italic;font-family:'IBM Plex Sans',sans-serif;padding-bottom:11px;border-bottom:1px solid #f1f5f9;margin-bottom:14px;}
+.rp-prose{font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.82;color:#374151;margin:8px 0;letter-spacing:.01em;}
+.rp-prose strong{font-weight:bold;color:#0f172a;}
+.eq-wrap{background:#fafaf8;border-left:2px solid #3b82f6;padding:10px 14px;margin:9px 0;border-radius:0 4px 4px 0;overflow-x:auto;}
+.eq-wrap .katex-display{margin:0!important;}
+.eq-caption{font-size:10px;color:#94a3b8;font-style:italic;font-family:'IBM Plex Sans',sans-serif;margin-top:5px;line-height:1.5;}
+.eq-wrap-dec{border-left-color:#dc2626;}
+.var-table{width:100%;border-collapse:collapse;font-size:10.5px;margin:6px 0;}
+.var-table th{text-align:left;color:#94a3b8;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;padding:3px 7px;border-bottom:1px solid #f1f5f9;font-weight:400;}
+.var-table td{padding:3px 7px;border-bottom:1px solid #fafaf8;vertical-align:top;}
+.var-table tr:last-child td{border-bottom:none;}
+.td-sym{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#1e40af;white-space:nowrap;}
+.td-def{font-size:10.5px;color:#475569;line-height:1.5;}
+.shape-transform{display:flex;align-items:center;gap:7px;margin:8px 0;flex-wrap:wrap;}
+.sh-box{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.sh-rect{border-radius:4px;padding:4px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;white-space:nowrap;}
+.sh-label{font-size:9px;color:#94a3b8;font-style:italic;text-align:center;}
+.sh-arr{font-size:15px;color:#e2e8f0;}
+.param-count{display:inline-flex;align-items:center;gap:5px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#1d4ed8;margin:6px 0;}
+.ref-note{font-size:10px;color:#94a3b8;font-family:'IBM Plex Sans',sans-serif;font-style:italic;margin-top:12px;padding-top:10px;border-top:1px solid #f1f5f9;line-height:1.6;}
+.katex{font-size:.95em;}
+#cv-tooltip{position:fixed;display:none;background:#1e293b;color:#f1f5f9;padding:5px 9px;border-radius:5px;font-size:11px;font-family:'IBM Plex Mono',monospace;pointer-events:none;z-index:9999;border:1px solid #334155;line-height:1.5;max-width:200px;}
+#rpanel::-webkit-scrollbar,#cpanel::-webkit-scrollbar,#lpanel::-webkit-scrollbar{width:4px;height:4px;}
+#rpanel::-webkit-scrollbar-thumb,#cpanel::-webkit-scrollbar-thumb,#lpanel::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="tb-title">TimeSeriesTransformer Explorer</div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-model="encoder" onclick="switchModel('encoder')">Encoder-Only</button>
+    <button class="tab-btn" data-model="seq2seq" onclick="switchModel('seq2seq')">Seq2Seq &middot; 5-step</button>
+  </div>
+  <div class="tb-controls">
+    <div class="ctrl-group"><label>Epoch</label><input type="range" min="1" max="50" value="25" id="epochSlider" step="1"><span class="ctrl-val" id="epochVal">25</span></div>
+    <div class="ctrl-group"><label>Sample</label><div class="btn-nav" onclick="navSample(-1)">&#8592;</div><span class="ctrl-val" id="sampleVal">0</span><div class="btn-nav" onclick="navSample(1)">&#8594;</div></div>
+    <div class="ctrl-group"><label>Head</label><input type="range" min="0" max="3" value="0" id="headSlider" step="1"><span class="ctrl-val" id="headVal">1</span></div>
+  </div>
+  <div class="tb-metrics">
+    <div class="metric"><span class="metric-label">MAE</span><span class="metric-val" id="m-mae">--</span></div>
+    <div class="metric"><span class="metric-label">RMSE</span><span class="metric-val" id="m-rmse">--</span></div>
+    <div class="metric" id="m-extra1"><span class="metric-label" id="m-e1l">MAPE</span><span class="metric-val" id="m-e1v">--</span></div>
+    <div class="metric" id="m-extra2" style="display:none;"><span class="metric-label">t+5 MAE</span><span class="metric-val" id="m-e2v">--</span></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="lpanel" id="lpanel"></div>
+  <div id="cpanel">
+    <div id="intro"></div>
+    <div id="flow-section">
+      <div class="flow-section-bar" id="flow-section-bar"></div>
+      <div id="flow"></div>
+    </div>
+    <div id="section3d">
+      <div id="section3d-label">3D tensor structure -- select a layer above</div>
+      <canvas id="canvas3d" height="250"></canvas>
+    </div>
+  </div>
+  <div id="rpanel"><div id="rpanel-content"><div style="display:flex;align-items:center;justify-content:center;height:180px;color:#ccc;font-style:italic;font-size:13px;">&#8592; Select a component</div></div></div>
+</div>
+<div id="cv-tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script>
+// ========================================================================
+// KaTeX helpers
+// ========================================================================
+function K(s){try{return katex.renderToString(s,{throwOnError:false,displayMode:false});}catch(e){return s;}}
+function Kb(s){try{return katex.renderToString(s,{throwOnError:false,displayMode:true});}catch(e){return s;}}
+
+// ========================================================================
+// State
+// ========================================================================
+var state={model:'encoder',epoch:25,sample:0,head:0,selected:'input'};
+var PRED_LEN=5, SEQ_LEN=20;
+
+// ========================================================================
+// Model definitions
+// ========================================================================
+var LAYERS_ENC=[
+  {id:'input',  name:'Input',          sub:'X',   shapeOut:'(32,20,11)', color:'#3b82f6', params:0,     type:'embed',   nT:20,nD:11},
+  {id:'proj',   name:'Projection',     sub:'W',   shapeOut:'(32,20,64)', color:'#8b5cf6', params:768,   type:'embed',   nT:20,nD:16},
+  {id:'cls',    name:'+ CLS Token',    sub:'c',   shapeOut:'(32,21,64)', color:'#ec4899', params:64,    type:'embed',   nT:21,nD:16, clsRow:0},
+  {id:'pe',     name:'+ Pos Encode',   sub:'PE',  shapeOut:'(32,21,64)', color:'#06b6d4', params:1344,  type:'embed',   nT:21,nD:16, clsRow:0},
+  {id:'enc1',   name:'Encoder L1',     sub:'E1',  shapeOut:'(32,21,64)', color:'#10b981', params:33472, type:'encoder', nT:21,nD:16, clsRow:0},
+  {id:'enc2',   name:'Encoder L2',     sub:'E2',  shapeOut:'(32,21,64)', color:'#10b981', params:33472, type:'encoder', nT:21,nD:16, clsRow:0},
+  {id:'clsext', name:'CLS Extract',    sub:'h',   shapeOut:'(32,64)',    color:'#ef4444', params:0,     type:'cls',     nT:21,nD:16},
+  {id:'head1',  name:'Head',           sub:'y',   shapeOut:'(32,1)',     color:'#f59e0b', params:193,   type:'head1',   nT:21,nD:16}
+];
+var CONN_ENC=['32x20x11','32x20x64','32x21x64','32x21x64','32x21x64','32x21x64','32x64'];
+
+var LAYERS_SEQ=[
+  {id:'input',   name:'Input',          sub:'X',    shapeOut:'(32,20,11)', color:'#3b82f6', params:0,     type:'embed',   nT:20,nD:11, group:'enc'},
+  {id:'proj',    name:'Projection',     sub:'W',    shapeOut:'(32,20,64)', color:'#8b5cf6', params:768,   type:'embed',   nT:20,nD:16, group:'enc'},
+  {id:'encpe',   name:'Encoder PE',     sub:'PE_e', shapeOut:'(32,20,64)', color:'#06b6d4', params:1280,  type:'embed',   nT:20,nD:16, group:'enc'},
+  {id:'enc1',    name:'Encoder L1',     sub:'E1',   shapeOut:'(32,20,64)', color:'#10b981', params:33472, type:'encoder', nT:20,nD:16, group:'enc'},
+  {id:'enc2',    name:'Encoder L2',     sub:'E2',   shapeOut:'(32,20,64)', color:'#10b981', params:33472, type:'encoder', nT:20,nD:16, group:'enc'},
+  {id:'queries', name:'Dec Queries',    sub:'Q_d',  shapeOut:'(32,5,64)',  color:'#f59e0b', params:640,   type:'embed',   nT:5, nD:16, group:'dec'},
+  {id:'dec1',    name:'Decoder L1',     sub:'D1',   shapeOut:'(32,5,64)',  color:'#dc2626', params:49536, type:'decoder', nT:5, nD:16, group:'dec'},
+  {id:'dec2',    name:'Decoder L2',     sub:'D2',   shapeOut:'(32,5,64)',  color:'#dc2626', params:49536, type:'decoder', nT:5, nD:16, group:'dec'},
+  {id:'head5',   name:'5-Step Head',    sub:'y',    shapeOut:'(32,5)',     color:'#f59e0b', params:193,   type:'multiout',nT:5, nD:16, group:'dec'}
+];
+var CONN_SEQ=['32x20x11','32x20x64','32x20x64','memory','32x20x64','32x5x64','32x5x64','32x5x64'];
+
+var FEATURES=[{name:'Open'},{name:'High'},{name:'Low'},{name:'Close'},{name:'Volume'},
+  {name:'Return'},{name:'MA5'},{name:'MA20'},{name:'Volat'},{name:'Sent'},{name:'Conf'}];
+
+// ========================================================================
+// Simulation
+// ========================================================================
+function H(s){var x=Math.sin(s*9301+49297)*233280;return x-Math.floor(x);}
+function H4(a,b,c,d){return H(a*1e7+b*1e5+c*1e3+d);}
+
+function currentLayers(){return state.model==='encoder'?LAYERS_ENC:LAYERS_SEQ;}
+
+function simEmbed(li,sample,epoch,nT,nD){
+  var out=[],sharp=epoch/50;
+  for(var t=0;t<nT;t++){
+    var row=[];
+    for(var d=0;d<nD;d++){
+      var v=H4(li,t,d,sample)*4-2;
+      if(li===0&&d<=3){v=v*0.5+(t/10-1)*(H(sample*7)-0.5)*2;}
+      else if(li>=3&&li<=4){var c2=H(d*100+sample*50)*4-2;v=v*(1-sharp*0.4)+c2*sharp*0.4;}
+      else if(li>=6&&li<=7){v=v*0.8*(1-sharp*0.3);}
+      row.push(Math.max(-2,Math.min(2,v)));
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+var ENC_POS=[0,1,3,7,11,14,17,19],ENC_LABELS=['d1','d2','d4','d8','d12','d15','d18','d20'];
+
+function simSelfAttn(li,hi,sample,epoch,nPos,posList){
+  var n=nPos,sharp=epoch/50;
+  var mat=[];
+  for(var i=0;i<n;i++){
+    var row=[];
+    for(var j=0;j<n;j++){
+      var pi=posList?posList[i]:i,pj=posList?posList[j]:j;
+      var v=H4(li*100+hi,pi,pj,sample)*2.5;
+      if(i===j)v+=0.8;
+      if(li===4&&pj>=14)v+=sharp*(pj/20)*1.2;
+      row.push(Math.exp(v));
+    }
+    var s2=row.reduce(function(a,b){return a+b;},0);
+    mat.push(row.map(function(x){return x/s2;}));
+  }
+  return mat;
+}
+
+function simCrossAttn(li,hi,sample,epoch){
+  var nQ=PRED_LEN,nK=SEQ_LEN,sharp=epoch/50;
+  var mat=[];
+  for(var i=0;i<nQ;i++){
+    var row=[];
+    for(var j=0;j<nK;j++){
+      var v=H4(li*200+hi*20,i,j,sample)*2;
+      v+=sharp*Math.exp(-Math.abs(j-(14+i*1.2))*0.4)*1.5;
+      if(j>=17)v+=sharp*0.4;
+      row.push(Math.exp(v));
+    }
+    var s2=row.reduce(function(a,b){return a+b;},0);
+    mat.push(row.map(function(x){return x/s2;}));
+  }
+  return mat;
+}
+
+function simPreds(sample,epoch){
+  var base=250+H(sample*7)*30,trend=(H(sample*13)-0.5)*0.3;
+  return Array.from({length:5},function(_,i){return base+trend*(i+1)+(H4(sample,epoch,i,77)-0.5)*8;});
+}
+
+// ========================================================================
+// Color maps
+// ========================================================================
+function rdbColor(v){
+  var t=Math.max(0,Math.min(1,(v+2)/4));
+  var r,g,b;
+  if(t<0.5){var k=t*2;r=Math.round(44+211*k);g=Math.round(110+145*k);b=240;}
+  else{var k=(t-0.5)*2;r=240;g=Math.round(255-200*k);b=Math.round(255-220*k);}
+  return'rgb('+r+','+g+','+b+')';
+}
+function attnBlue(v){var a=Math.max(0,Math.min(1,v));return'rgb('+Math.round(14+20*a)+','+Math.round(18+130*a)+','+Math.round(24+200*a)+')';}
+function attnRed(v){var a=Math.max(0,Math.min(1,v));return'rgb('+Math.round(14+220*a)+','+Math.round(18+50*a)+','+Math.round(24+24*a)+')';}
+
+// ========================================================================
+// Canvas drawing
+// ========================================================================
+function drawTokenGrid(canvas,data,cls){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var nT=data.length,nD=data[0].length,cw=canvas.width/nD,ch=canvas.height/nT;
+  for(var t=0;t<nT;t++){
+    for(var d=0;d<nD;d++){ctx.fillStyle=rdbColor(data[t][d]);ctx.fillRect(d*cw,t*ch,cw+.5,ch+.5);}
+    if(t===cls){ctx.strokeStyle='rgba(168,85,247,.8)';ctx.lineWidth=1.5;ctx.strokeRect(1,t*ch+.75,canvas.width-2,ch-1.5);}
+  }
+}
+
+function drawFourHeads(canvas,li,sample,epoch,selfN,posList,colorFn){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var hw=Math.floor((canvas.width-2)/2),hh=Math.floor((canvas.height-2)/2);
+  var offs=[[0,0],[hw+2,0],[0,hh+2],[hw+2,hh+2]];
+  for(var h=0;h<4;h++){
+    var mat=simSelfAttn(li,h,sample,epoch,selfN,posList);
+    var ox=offs[h][0],oy=offs[h][1],n=mat.length,cell=Math.floor(hw/n);
+    for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+      ctx.fillStyle=(colorFn||attnBlue)(mat[i][j]*n*.8);
+      ctx.fillRect(ox+j*cell,oy+i*cell,cell,cell);
+    }
+    ctx.fillStyle='rgba(100,116,139,.9)';ctx.font='bold 8px IBM Plex Mono,monospace';
+    ctx.fillText('h'+(h+1),ox+2,oy+9);
+    if(h===state.head){ctx.strokeStyle='rgba(56,189,248,.9)';ctx.lineWidth=1.5;ctx.strokeRect(ox+.75,oy+.75,hw-1.5,hh-1.5);}
+  }
+}
+
+function drawCrossAttnFull(canvas,li,sample,epoch){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var mat=simCrossAttn(li,state.head,sample,epoch);
+  var nQ=mat.length,nK=mat[0].length,cw=canvas.width/nK,ch=canvas.height/nQ;
+  for(var i=0;i<nQ;i++){
+    for(var j=0;j<nK;j++){ctx.fillStyle=attnRed(mat[i][j]*nK*.9);ctx.fillRect(j*cw,i*ch,cw+.5,ch+.5);}
+    ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 7.5px IBM Plex Mono,monospace';
+    ctx.fillText('t+'+(i+1),1,i*ch+ch*.7);
+  }
+  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=.5;
+  for(var j=0;j<=nK;j+=5){ctx.beginPath();ctx.moveTo(j*cw,0);ctx.lineTo(j*cw,canvas.height);ctx.stroke();}
+}
+
+function drawDecSelf(canvas,li,sample,epoch){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var mat=simSelfAttn(li,state.head,sample,epoch,PRED_LEN,null);
+  var n=mat.length,cell=Math.floor(canvas.width/n);
+  for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+    ctx.fillStyle=attnBlue(mat[i][j]*n*.7);ctx.fillRect(j*cell,i*cell,cell,cell);
+  }
+  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=.5;
+  for(var k=0;k<=n;k++){ctx.beginPath();ctx.moveTo(k*cell,0);ctx.lineTo(k*cell,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,k*cell);ctx.lineTo(canvas.width,k*cell);ctx.stroke();}
+}
+
+function drawCLSExtract(canvas,data){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var nT=data.length,nD=data[0].length,cw=canvas.width/nD,ch=canvas.height/nT;
+  for(var t=0;t<nT;t++){
+    for(var d=0;d<nD;d++){ctx.fillStyle=t===0?rdbColor(data[t][d]):'rgba(20,24,36,.92)';ctx.fillRect(d*cw,t*ch,cw+.5,ch+.5);}
+  }
+  ctx.strokeStyle='rgba(239,68,68,.85)';ctx.lineWidth=1.5;ctx.strokeRect(1,.75,canvas.width-2,ch-1.5);
+}
+
+function drawPredBar(canvas){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var W=canvas.width,H=canvas.height;
+  var preds=simPreds(state.sample,state.epoch);
+  var mn=Math.min.apply(null,preds)-4,mx=Math.max.apply(null,preds)+4;
+  var bw=(W-16)/PRED_LEN;
+  preds.forEach(function(v,i){
+    var bh=(v-mn)/(mx-mn)*(H-20);
+    var x=8+i*bw,y=H-10-bh;
+    ctx.fillStyle='rgba(220,38,38,.72)';ctx.fillRect(x+1,y,bw-2,bh);
+    ctx.fillStyle='#1e293b';ctx.font='7.5px IBM Plex Mono,monospace';ctx.textAlign='center';
+    ctx.fillText('$'+Math.round(v),x+bw/2,y-2);
+    ctx.fillStyle='#94a3b8';ctx.fillText('t+'+(i+1),x+bw/2,H-2);
+    ctx.textAlign='left';
+  });
+}
+
+function drawHead1(canvas,data){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var vals=data[0],n=vals.length,bw=canvas.width/n,midY=canvas.height/2;
+  for(var d=0;d<n;d++){
+    var v=vals[d],h=Math.abs(v)/2*midY;
+    ctx.fillStyle=v>0?'rgba(245,158,11,.85)':'rgba(99,102,241,.75)';
+    ctx.fillRect(d*bw,v>0?midY-h:midY,bw-.5,h);
+  }
+  ctx.strokeStyle='rgba(0,0,0,.1)';ctx.lineWidth=.5;
+  ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(canvas.width,midY);ctx.stroke();
+}
+
+// ========================================================================
+// 3D tensor
+// ========================================================================
+function draw3DTensor(layerIdx){
+  var el=document.getElementById('canvas3d');if(!el)return;
+  var W=el.offsetWidth||700;el.width=W;
+  var H=el.height,ctx=el.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var layers=currentLayers(),layer=layers[layerIdx];
+  var nT=layer.nT||20,nD=Math.min(layer.nD||16,16);
+  var fW=Math.min(180,W*.25),fH=105,dX=Math.round(fW*.22),dY=Math.round(fH*.22);
+  var oy=H-30-dY;if(oy-fH-dY<dY+20)oy=dY+20+fH+dY;
+  var ox=(W-fW-dX)/2;
+  var fl=[ox,oy],fr=[ox+fW,oy],tr=[ox+fW,oy-fH],tl=[ox,oy-fH];
+  var Bfr=[ox+fW+dX,oy-dY],Btr=[ox+fW+dX,oy-fH-dY],Btl=[ox+dX,oy-fH-dY];
+  function poly(pts,f,s){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(f){ctx.fillStyle=f;ctx.fill();}if(s){ctx.strokeStyle=s;ctx.lineWidth=.8;ctx.stroke();}}
+  poly([fr,Bfr,Btr,tr],'#dde4f0','#b8c4d8');
+  poly([tl,tr,Btr,Btl],'#e8edf7','#b8c4d8');
+  var data=simEmbed(layerIdx,state.sample,state.epoch,nT,nD);
+  var cW=fW/nD,cH=fH/nT;
+  ctx.save();ctx.beginPath();ctx.rect(fl[0],tl[1],fW,fH);ctx.clip();
+  for(var t=0;t<nT;t++)for(var d=0;d<nD;d++){ctx.fillStyle=rdbColor(data[t][d]);ctx.fillRect(fl[0]+d*cW,tl[1]+t*cH,cW+.5,cH+.5);}
+  if(layer.clsRow===0){ctx.strokeStyle='rgba(168,85,247,.8)';ctx.lineWidth=1.5;ctx.strokeRect(fl[0]+1,tl[1]+.75,fW-2,cH-1.5);}
+  ctx.restore();
+  ctx.strokeStyle='#94a3b8';ctx.lineWidth=1;ctx.strokeRect(fl[0],tl[1],fW,fH);
+  ctx.textAlign='center';
+  ctx.font='bold 10px IBM Plex Mono,monospace';ctx.fillStyle='#1e293b';
+  ctx.fillText((layer.nD||64)+' dims',fl[0]+fW/2,oy+17);
+  ctx.save();ctx.translate(fl[0]-15,tl[1]+fH/2);ctx.rotate(-Math.PI/2);ctx.fillText(nT+' tokens',0,0);ctx.restore();
+  ctx.font='8.5px IBM Plex Mono,monospace';ctx.fillStyle='#64748b';
+  ctx.fillText('B=32',(Btl[0]+Btr[0]+tl[0]+tr[0])/4,(Btl[1]+Btr[1]+tl[1]+tr[1])/4+4);
+  ctx.font='10.5px IBM Plex Mono,monospace';ctx.fillStyle='#475569';ctx.fillText(layer.shapeOut,W/2,H-6);
+  ctx.textAlign='left';
+  var ax=fl[0]-24,ay=oy+9;
+  function arr(x1,y1,x2,y2,lbl,lx,ly){ctx.strokeStyle='#94a3b8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();var a=Math.atan2(y2-y1,x2-x1);ctx.save();ctx.translate(x2,y2);ctx.rotate(a);ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-5,-2.5);ctx.lineTo(-5,2.5);ctx.closePath();ctx.fill();ctx.restore();ctx.font='8px IBM Plex Mono,monospace';ctx.fillStyle='#94a3b8';ctx.fillText(lbl,lx,ly);}
+  arr(ax,ay,ax+20,ay,'dims',ax+2,ay+9);arr(ax,ay,ax,ay-20,'tokens',ax-9,ay-22);arr(ax,ay,ax+dX*.55,ay-dY*.55,'batch',ax+dX*.55,ay-dY*.55-3);
+}
+
+// ========================================================================
+// Build flow
+// ========================================================================
+function buildFlow(){
+  var layers=currentLayers();
+  var connectors=state.model==='encoder'?CONN_ENC:CONN_SEQ;
+  var flow=document.getElementById('flow');
+  var html='';
+  layers.forEach(function(layer,i){
+    if(i>0){
+      var isMem=connectors[i-1]==='memory';
+      if(isMem){
+        html+='<div class="memory-connector"><div class="memory-conn-label">memory</div><div class="conn-arrow"><div class="conn-line-mem"></div><div class="conn-tip conn-tip-mem"></div></div></div>';
+      } else {
+        html+='<div class="connector"><div class="conn-shape">'+connectors[i-1]+'</div><div class="conn-arrow"><div class="conn-line"></div><div class="conn-tip"></div></div></div>';
+      }
+    }
+    var colW=layer.type==='decoder'?208:166;
+    html+='<div class="layer-col" id="col-'+layer.id+'" onclick="selectLayer(\''+layer.id+'\')" style="--accent:'+layer.color+';width:'+colW+'px;">';
+    html+='<div class="lc-header"><div class="lc-name">'+layer.name+'</div><div class="lc-badge" style="background:'+layer.color+'22;color:'+layer.color+';">'+layer.sub+'</div></div>';
+
+    if(layer.type==='embed'){
+      var cW2=Math.min(142,layer.nD*13);if(layer.nD===11)cW2=142;
+      html+='<canvas id="tok-'+layer.id+'" width="'+cW2+'" height="'+(layer.nT*9)+'" class="lc-canvas" style="cursor:crosshair;"></canvas>';
+    } else if(layer.type==='encoder'){
+      html+='<div class="canvas-label">self-attention</div>';
+      html+='<canvas id="attn-'+layer.id+'" width="142" height="70" class="lc-canvas" style="cursor:crosshair;margin-bottom:3px;"></canvas>';
+      html+='<div class="canvas-label">output tokens</div>';
+      html+='<canvas id="tok-'+layer.id+'" width="142" height="45" class="lc-canvas" style="cursor:crosshair;"></canvas>';
+    } else if(layer.type==='decoder'){
+      html+='<div style="display:flex;gap:3px;"><div><div class="canvas-label">self 5x5</div><canvas id="dself-'+layer.id+'" width="72" height="72" class="lc-canvas" style="cursor:crosshair;"></canvas></div>';
+      html+='<div style="flex:1;"><div class="canvas-label">cross 5x7</div><canvas id="cross-'+layer.id+'" width="100" height="72" class="lc-canvas" style="cursor:crosshair;"></canvas></div></div>';
+      html+='<div class="canvas-label">cross-attn 5&times;20 (full)</div>';
+      html+='<canvas id="crossfull-'+layer.id+'" width="186" height="55" class="lc-canvas" style="cursor:crosshair;margin-bottom:3px;"></canvas>';
+      html+='<div class="canvas-label">query outputs</div>';
+      html+='<canvas id="tok-'+layer.id+'" width="186" height="45" class="lc-canvas" style="cursor:crosshair;"></canvas>';
+    } else if(layer.type==='cls'){
+      html+='<canvas id="tok-'+layer.id+'" width="142" height="'+(layer.nT*9)+'" class="lc-canvas" style="cursor:crosshair;"></canvas>';
+    } else if(layer.type==='head1'){
+      html+='<canvas id="tok-'+layer.id+'" width="142" height="70" class="lc-canvas"></canvas>';
+    } else if(layer.type==='multiout'){
+      html+='<div class="canvas-label">5 predicted prices</div>';
+      html+='<canvas id="tok-'+layer.id+'" width="142" height="80" class="lc-canvas"></canvas>';
+    }
+
+    html+='<div class="lc-shape">'+layer.shapeOut+'</div>';
+    if(layer.params>0)html+='<div class="lc-params">'+layer.params.toLocaleString()+' params</div>';
+    html+='</div>';
+  });
+  flow.innerHTML=html;
+
+  // Section labels for seq2seq
+  var bar=document.getElementById('flow-section-bar');
+  if(state.model==='seq2seq'){
+    var encW=0,decW=0,encDone=false;
+    layers.forEach(function(l,i){var cW2=l.type==='decoder'?208:166;var connW=i>0?42:0;if(l.group==='enc')encW+=cW2+connW;else{decW+=cW2+connW;}});
+    bar.innerHTML='<div style="width:'+encW+'px;text-align:center;color:#10b981;font-family:IBM Plex Mono,monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;">ENCODER</div>'+
+      '<div style="width:'+decW+'px;text-align:center;color:#dc2626;font-family:IBM Plex Mono,monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;">DECODER</div>';
+  } else {
+    bar.innerHTML='';
+  }
+}
+
+// ========================================================================
+// Redraw
+// ========================================================================
+function redrawAll(){
+  var s=state.sample,e=state.epoch;
+  var layers=currentLayers();
+  layers.forEach(function(layer,i){
+    var data=simEmbed(i,s,e,layer.nT||20,layer.nD||16);
+    if(layer.type==='embed'){var c=document.getElementById('tok-'+layer.id);if(c)drawTokenGrid(c,data,layer.clsRow!=null?layer.clsRow:-1);}
+    else if(layer.type==='encoder'){
+      var ac=document.getElementById('attn-'+layer.id);
+      if(ac)drawFourHeads(ac,i,s,e,ENC_POS.length,ENC_POS,attnBlue);
+      var tc=document.getElementById('tok-'+layer.id);if(tc)drawTokenGrid(tc,simEmbed(i,s,e,layer.nT,layer.nD),-1);
+    } else if(layer.type==='decoder'){
+      var ds=document.getElementById('dself-'+layer.id);if(ds)drawDecSelf(ds,i,s,e);
+      var cf=document.getElementById('crossfull-'+layer.id);if(cf)drawCrossAttnFull(cf,i,s,e);
+      var cv=document.getElementById('cross-'+layer.id);
+      if(cv){var mat=simCrossAttn(i,state.head,s,e);var sub=mat.map(function(r){return[r[0],r[2],r[5],r[9],r[13],r[17],r[19]];});drawAttnSubset(cv,sub);}
+      var tc=document.getElementById('tok-'+layer.id);if(tc)drawTokenGrid(tc,simEmbed(i,s,e,PRED_LEN,layer.nD),-1);
+    } else if(layer.type==='cls'){
+      var c=document.getElementById('tok-'+layer.id);if(c)drawCLSExtract(c,simEmbed(i,s,e,layer.nT,layer.nD));
+    } else if(layer.type==='head1'){
+      var c=document.getElementById('tok-'+layer.id);if(c)drawHead1(c,data);
+    } else if(layer.type==='multiout'){
+      var c=document.getElementById('tok-'+layer.id);if(c)drawPredBar(c);
+    }
+  });
+  updateMetrics();
+  if(document.getElementById('pred-canvas'))drawPredBar(document.getElementById('pred-canvas'));
+}
+
+function drawAttnSubset(canvas,mat){
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var nR=mat.length,nC=mat[0].length,cw=canvas.width/nC,ch=canvas.height/nR;
+  for(var i=0;i<nR;i++)for(var j=0;j<nC;j++){ctx.fillStyle=attnRed(mat[i][j]*nC*.9);ctx.fillRect(j*cw,i*ch,cw+.5,ch+.5);}
+  for(var i=0;i<nR;i++){ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='7px IBM Plex Mono,monospace';ctx.fillText('t+'+(i+1),1,i*ch+ch*.7);}
+}
+
+function updateMetrics(){
+  var s=state.sample,e=state.epoch;
+  if(state.model==='encoder'){
+    var base=4.5+Math.sin(e*.3)*.8+s*.03;
+    document.getElementById('m-mae').textContent=base.toFixed(2);
+    document.getElementById('m-rmse').textContent=(base*1.22).toFixed(2);
+    document.getElementById('m-e1l').textContent='MAPE';
+    document.getElementById('m-e1v').textContent=(base/270*100).toFixed(2)+'%';
+    document.getElementById('m-extra2').style.display='none';
+  } else {
+    var preds=simPreds(s,e),base2=250+H(s*7)*30,trend=(H(s*13)-0.5)*.3;
+    var errs=preds.map(function(p,i){return Math.abs(p-base2-(i+1)*trend);});
+    var mae=errs.reduce(function(a,b){return a+b;})/errs.length;
+    document.getElementById('m-mae').textContent=mae.toFixed(2);
+    document.getElementById('m-rmse').textContent=(mae*1.24).toFixed(2);
+    document.getElementById('m-e1l').textContent='t+1';
+    document.getElementById('m-e1v').textContent=errs[0].toFixed(2);
+    document.getElementById('m-extra2').style.display='';
+    document.getElementById('m-e2v').textContent=errs[4].toFixed(2);
+  }
+}
+
+// ========================================================================
+// Left panel
+// ========================================================================
+function buildLeftPanel(){
+  var lp=document.getElementById('lpanel');
+  var predSection=state.model==='seq2seq'?
+    '<div><div class="lp-section-title">5-step Forecast</div><div class="lp-card"><canvas id="pred-canvas" width="148" height="72" style="display:block;border-radius:3px;"></canvas></div></div>':'';
+
+  var params=state.model==='encoder'?'52,481':'~170k';
+  var layers=state.model==='encoder'?'enc: 2':'enc: 2, dec: 2';
+  lp.innerHTML=
+    '<div><div class="lp-section-title">Dataset</div><div class="lp-card">'+
+    '<div style="font-size:11.5px;font-weight:500;color:#0f172a;margin-bottom:2px;">AAPL</div>'+
+    '<div style="font-size:9.5px;color:#64748b;font-family:IBM Plex Mono,monospace;">2023-2024</div>'+
+    '<div style="font-size:9.5px;color:#94a3b8;margin-top:4px;">~500 trading days<br>80/10/10 split</div>'+
+    '<canvas id="mini-canvas" width="148" height="66" style="display:block;border-radius:3px;image-rendering:pixelated;margin-top:6px;cursor:crosshair;"></canvas></div></div>'+
+    predSection+
+    '<div><div class="lp-section-title">Features</div><div class="lp-card" id="feat-list"></div></div>'+
+    '<div><div class="lp-section-title">Config</div><div class="lp-card">'+
+    '<div class="hyp-row"><span class="hyp-key">SEQ_LEN</span><span class="hyp-val">20</span></div>'+
+    (state.model==='seq2seq'?'<div class="hyp-row"><span class="hyp-key">PRED_LEN</span><span class="hyp-val">5</span></div>':'')+
+    '<div class="hyp-row"><span class="hyp-key">d_model</span><span class="hyp-val">64</span></div>'+
+    '<div class="hyp-row"><span class="hyp-key">nhead</span><span class="hyp-val">4</span></div>'+
+    '<div class="hyp-row"><span class="hyp-key">layers</span><span class="hyp-val">'+layers+'</span></div>'+
+    '<div class="hyp-row"><span class="hyp-key">params</span><span class="hyp-val">'+params+'</span></div>'+
+    '</div></div>';
+
+  var fl=document.getElementById('feat-list');
+  if(fl){var fh='';FEATURES.forEach(function(f,i){var v=(H(state.sample*100+i)*4-2).toFixed(2);fh+='<div class="feat-row"><span class="feat-name">'+f.name+'</span><span class="feat-val">'+v+'</span></div>';});fl.innerHTML=fh;}
+
+  var mc=document.getElementById('mini-canvas');
+  if(mc){drawTokenGrid(mc,simEmbed(0,state.sample,state.epoch,20,11),-1);attachTokenHover(mc,0);}
+  var pc=document.getElementById('pred-canvas');
+  if(pc)drawPredBar(pc);
+}
+
+// ========================================================================
+// Intro HTML
+// ========================================================================
+function buildIntro(){
+  var el=document.getElementById('intro');
+  if(state.model==='encoder'){
+    el.innerHTML=
+      '<div class="intro-heading">Why Transformers for Financial Time Series?</div>'+
+      '<div class="intro-body">RNNs and LSTMs process sequences one step at a time, creating a bottleneck: long-range dependencies are compressed through a fixed hidden state, gradients vanish over distance, and training cannot be parallelised. Transformers eliminate this by computing <em>all pairwise attention weights simultaneously</em>, letting every day attend directly to every other day regardless of temporal distance.</div>'+
+      '<div class="intro-cards">'+
+      '<div class="icard" style="background:#fef9f0;border-color:#fed7aa;"><div class="icard-title" style="color:#c2410c;">RNN</div><ul class="icard-list" style="color:#78350f;"><li>Sequential O(n) steps</li><li>Fixed hidden state</li><li>Gradient vanishing</li><li>No parallelism</li><li><span class="tag-bad">Poor long-range</span></li></ul></div>'+
+      '<div class="icard" style="background:#f5f3ff;border-color:#ddd6fe;"><div class="icard-title" style="color:#6d28d9;">LSTM</div><ul class="icard-list" style="color:#4c1d95;"><li>Gated memory cells</li><li>Better gradient flow</li><li>Still sequential O(n)</li><li>3&times; more params</li><li><span class="tag-good">Better memory</span></li></ul></div>'+
+      '<div class="icard" style="background:#f0f9ff;border-color:#bae6fd;border-width:2px;"><div class="icard-title" style="color:#0369a1;">Transformer</div><ul class="icard-list" style="color:#0c4a6e;"><li>Parallel O(1) steps</li><li>Direct token attention</li><li>Position encoding</li><li>O(n^2) attention cost</li><li><span class="tag-good">Full parallelism</span></li></ul></div>'+
+      '</div>';
+  } else {
+    el.innerHTML=
+      '<div class="intro-heading">Seq2Seq Transformer: Predicting 5 Future Time Steps Simultaneously</div>'+
+      '<div class="intro-body">The encoder reads 20 days of history and produces a <strong>memory</strong> tensor. Five learned <em>decoder queries</em> -- one per future timestep -- then cross-attend to this memory, each independently asking "what historical context do I need to predict day t+k?" This allows t+1 to focus on recent momentum while t+5 looks at broader patterns.</div>'+
+      '<div class="intro-cards">'+
+      '<div class="icard" style="background:#f0fdf4;border-color:#bbf7d0;"><div class="icard-title" style="color:#15803d;">Encoder</div><ul class="icard-list" style="color:#14532d;"><li>Reads 20-day history</li><li>Self-attention 20&times;20</li><li>Produces memory (32,20,64)</li><li><span class="tag-good">Same as encoder-only</span></li></ul></div>'+
+      '<div class="icard" style="background:#fff7ed;border-color:#fed7aa;border-width:2px;"><div class="icard-title" style="color:#c2410c;">Decoder</div><ul class="icard-list" style="color:#7c2d12;"><li>5 learned query vectors</li><li>Self-attn 5&times;5 queries</li><li>Cross-attn 5&times;20 memory</li><li><span class="tag-good">Parallel 5-step output</span></li></ul></div>'+
+      '<div class="icard" style="background:#fdf4ff;border-color:#e9d5ff;"><div class="icard-title" style="color:#7e22ce;">Cross-Attention</div><ul class="icard-list" style="color:#581c87;"><li>t+1: focuses on recent</li><li>t+5: broader context</li><li>5&times;20 heatmap shows this</li><li><span class="tag-good">Interpretable per step</span></li></ul></div>'+
+      '</div>';
+  }
+}
+
+// ========================================================================
+// Tooltip & interactivity
+// ========================================================================
+var _tip=null;
+function showTip(x,y,html){if(!_tip)_tip=document.getElementById('cv-tooltip');_tip.innerHTML=html;_tip.style.display='block';_tip.style.left=(x+13)+'px';_tip.style.top=(y-7)+'px';}
+function hideTip(){if(!_tip)_tip=document.getElementById('cv-tooltip');_tip.style.display='none';}
+
+function attachTokenHover(canvas,li){
+  var layers=currentLayers(),layer=layers[li]||{nT:20,nD:11};
+  var nT=layer.nT||20,nD=Math.min(layer.nD||11,16);
+  canvas.style.cursor='crosshair';
+  canvas.onmousemove=function(e){
+    var r=canvas.getBoundingClientRect();
+    var mx=(e.clientX-r.left)*(canvas.width/r.width),my=(e.clientY-r.top)*(canvas.height/r.height);
+    var d=Math.floor(mx/(canvas.width/nD)),t=Math.floor(my/(canvas.height/nT));
+    if(t>=0&&t<nT&&d>=0&&d<nD){
+      var data=simEmbed(li,state.sample,state.epoch,nT,nD);
+      var v=data[t]&&data[t][d]!==undefined?data[t][d].toFixed(3):'--';
+      var tlbl=layer.type==='decoder'||li===5?'query t+'+(t+1):t===0&&layer.clsRow===0?'CLS':'day '+(t+1);
+      var feat=li===0&&FEATURES[d]?FEATURES[d].name:'dim '+d;
+      showTip(e.clientX,e.clientY,'<b>'+tlbl+'</b><br>'+feat+': <b>'+v+'</b>');
+    }else hideTip();
+  };
+  canvas.onmouseleave=hideTip;
+}
+
+function attachAttnHover(canvas,li,attnType){
+  canvas.style.cursor='crosshair';
+  canvas.onmousemove=function(e){
+    var r=canvas.getBoundingClientRect();
+    var mx=(e.clientX-r.left)*(canvas.width/r.width),my=(e.clientY-r.top)*(canvas.height/r.height);
+    if(attnType==='crossfull'){
+      var col=Math.floor(mx/(canvas.width/SEQ_LEN)),row=Math.floor(my/(canvas.height/PRED_LEN));
+      if(row>=0&&row<PRED_LEN&&col>=0&&col<SEQ_LEN){
+        var mat=simCrossAttn(li,state.head,state.sample,state.epoch);
+        showTip(e.clientX,e.clientY,'<b>Query t+'+(row+1)+'</b><br>encoder day '+(col+1)+'<br>weight: <b>'+mat[row][col].toFixed(4)+'</b>');
+      }else hideTip();
+    } else {
+      var hw=canvas.width/2,hh=canvas.height/2;
+      var hIdx=(my>hh?2:0)+(mx>hw?1:0);
+      var cell=Math.floor((hw-2)/ENC_LABELS.length);
+      var ox2=(mx>hw?hw+2:0),oy2=(my>hh?hh+2:0);
+      var col2=Math.floor((mx-ox2)/cell),row2=Math.floor((my-oy2)/cell);
+      if(col2>=0&&col2<ENC_LABELS.length&&row2>=0&&row2<ENC_LABELS.length){
+        var mat2=simSelfAttn(li,hIdx,state.sample,state.epoch,ENC_POS.length,ENC_POS);
+        showTip(e.clientX,e.clientY,'<b>Head '+(hIdx+1)+'</b><br>'+ENC_LABELS[row2]+' &rarr; '+ENC_LABELS[col2]+'<br>'+mat2[row2][col2].toFixed(4));
+      }else hideTip();
+    }
+  };
+  canvas.onmouseleave=hideTip;
+  if(attnType==='enc4heads'){
+    canvas.onclick=function(e){
+      var r=canvas.getBoundingClientRect();
+      var mx=(e.clientX-r.left)*(canvas.width/r.width),my=(e.clientY-r.top)*(canvas.height/r.height);
+      var hIdx=(my>canvas.height/2?2:0)+(mx>canvas.width/2?1:0);
+      state.head=hIdx;document.getElementById('headVal').textContent=hIdx+1;document.getElementById('headSlider').value=hIdx;redrawAll();
+    };
+  }
+}
+
+function attachInteractivity(){
+  var layers=currentLayers();
+  layers.forEach(function(layer,i){
+    if(layer.type==='embed'||layer.type==='cls'||layer.type==='head1'||layer.type==='multiout'){
+      var c=document.getElementById('tok-'+layer.id);if(c)attachTokenHover(c,i);
+    } else if(layer.type==='encoder'){
+      var ac=document.getElementById('attn-'+layer.id);if(ac)attachAttnHover(ac,i,'enc4heads');
+      var tc=document.getElementById('tok-'+layer.id);if(tc)attachTokenHover(tc,i);
+    } else if(layer.type==='decoder'){
+      var cf=document.getElementById('crossfull-'+layer.id);if(cf)attachAttnHover(cf,i,'crossfull');
+      var tc=document.getElementById('tok-'+layer.id);if(tc)attachTokenHover(tc,i);
+    }
+  });
+  var c3=document.getElementById('canvas3d');
+  if(c3){c3.onmousemove=function(e){showTip(e.clientX,e.clientY,'front: tokens &times; dims<br>top: batch B=32');};c3.onmouseleave=hideTip;}
+}
+
+// ========================================================================
+// Detail content (shared where possible)
+// ========================================================================
+function detailSharedInput(){
+  var targetStr=state.model==='encoder'?
+    K('y \\in \\mathbb{R}^{32}')+'&ensp;(next-day close)':
+    K('\\mathbf{y} \\in \\mathbb{R}^{32 \\times 5}')+'&ensp;(5 future closes)';
+  return '<div class="rp-title">Input Tensor</div>'+
+    '<div class="rp-subtitle">Standardised 20-day market window</div>'+
+    '<div class="rp-prose">Each sample is a window of <strong>20 consecutive trading days</strong>, each described by 11 features. Target: '+targetStr+'.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{X} \\in \\mathbb{R}^{32 \\times 20 \\times 11}')+'<div class="eq-caption">B=32 &ensp; T=20 &ensp; F=11</div></div>'+
+    '<div class="eq-wrap">'+Kb('\\hat{x}_{t,f} = \\frac{x_{t,f} - \\mu_f^{\\mathrm{train}}}{\\sigma_f^{\\mathrm{train}} + \\varepsilon}')+'<div class="eq-caption">StandardScaler fitted on training split only</div></div>'+
+    '<div class="param-count">0 parameters</div>';
+}
+function detailSharedProj(){
+  return '<div class="rp-title">Linear Projection</div>'+
+    '<div class="rp-subtitle">F=11 features &rarr; d<sub>model</sub>=64 dimensions</div>'+
+    '<div class="rp-prose">Each day\'s 11-feature vector is lifted to 64 dimensions via a learned linear map, applied simultaneously to all 20 positions. All transformer components share this common dimensionality.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{Z} = \\mathbf{X}\\mathbf{W}_{\\mathrm{proj}} + \\mathbf{b}_{\\mathrm{proj}} \\in \\mathbb{R}^{32 \\times 20 \\times 64}')+'</div>'+
+    '<div class="param-count">768 parameters -- 11&times;64 weights + 64 biases</div>';
+}
+function detailEncCLS(){
+  return '<div class="rp-title">+ CLS Token</div>'+
+    '<div class="rp-subtitle">Prepending a learned global-summary token</div>'+
+    '<div class="rp-prose">A single learned 64-dim vector is prepended at position 0. After both encoder layers it will have attended to all 20 day tokens and holds a compressed sequence summary used for the single-step prediction.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{H}^{(0)} = [\\,\\mathbf{c}_{\\mathrm{cls}}\\;|\\;\\mathbf{Z}\\,] \\in \\mathbb{R}^{32 \\times 21 \\times 64}')+'<div class="eq-caption">T: 20 &rarr; 21</div></div>'+
+    '<div class="param-count">64 parameters</div>'+
+    '<div class="ref-note">Devlin et al. (2019) BERT. NAACL.</div>';
+}
+function detailEncPE(isCLS){
+  var sub=isCLS?'+ Positional Encoding':'Encoder PE';
+  var nSlots=isCLS?21:20;
+  return '<div class="rp-title">'+sub+'</div>'+
+    '<div class="rp-subtitle">Injecting temporal order into parallel attention</div>'+
+    '<div class="rp-prose">A learned '+K('\\texttt{nn.Embedding}('+nSlots+',\\,64)')+'  adds a unique position vector to each token. Without this, swapping any two days would produce identical output.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{H}^{(0)}_t \\leftarrow \\mathbf{H}^{(0)}_t + \\mathbf{PE}_t, \\quad \\mathbf{PE} \\in \\mathbb{R}^{'+nSlots+' \\times 64}')+'</div>'+
+    '<div class="param-count">'+(nSlots*64).toLocaleString()+' parameters</div>';
+}
+function detailEncLayer(n){
+  return '<div class="rp-title">Encoder Layer '+n+'</div>'+
+    '<div class="rp-subtitle">Self-attention + FFN with Pre-LayerNorm residuals</div>'+
+    '<div class="rp-prose">Each day attends to every other day via scaled dot-product attention. Layer 1 builds broad context; Layer 2 sharpens, typically focusing on recent days. Click any head quadrant to select it.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{H}^{\\prime} = \\mathbf{H} + \\mathrm{MHA}(\\mathrm{LN}(\\mathbf{H}))')+Kb('\\mathbf{H}^{\\prime\\prime} = \\mathbf{H}^{\\prime} + \\mathrm{FFN}(\\mathrm{LN}(\\mathbf{H}^{\\prime}))') +'<div class="eq-caption">Pre-LN (norm_first=True)</div></div>'+
+    '<div class="eq-wrap">'+Kb('\\mathrm{Attn}(\\mathbf{Q},\\mathbf{K},\\mathbf{V}) = \\mathrm{softmax}\\!\\left(\\tfrac{\\mathbf{QK}^\\top}{\\sqrt{16}}\\right)\\mathbf{V}')+'<div class="eq-caption">4 heads &ensp; d_k=16 &ensp; '+state.model==='encoder'?'21&times;21':'20&times;20'+' attention matrix</div></div>'+
+    '<div class="param-count">33,472 parameters</div>'+
+    '<div class="ref-note">Vaswani et al. (2017) Attention Is All You Need. NeurIPS.</div>';
+}
+function detailCLSExtract(){
+  return '<div class="rp-title">CLS Extraction</div>'+
+    '<div class="rp-subtitle">Discarding day tokens; keeping the sequence summary</div>'+
+    '<div class="rp-prose">After two encoder layers the CLS token at position 0 has attended to all 20 days. We slice position 0 and discard the 20 day tokens.</div>'+
+    '<div class="eq-wrap">'+Kb('\\mathbf{h}_{\\mathrm{cls}} = \\mathbf{H}^{(2)}_{[:,0,:]} \\in \\mathbb{R}^{32 \\times 64}')+'<div class="eq-caption">Python: x[:,&nbsp;0,&nbsp;:]</div></div>'+
+    '<div class="param-count">0 parameters</div>';
+}
+function detailHead1(){
+  return '<div class="rp-title">Prediction Head</div>'+
+    '<div class="rp-subtitle">64-dim CLS vector &rarr; scalar price prediction</div>'+
+    '<div class="rp-prose">LayerNorm stabilises the CLS vector, then a linear layer maps 64 dimensions to a single scaled price. Inverse-transformed post-inference.</div>'+
+    '<div class="eq-wrap">'+Kb('\\hat{y} = \\mathbf{w}^\\top \\mathrm{LN}(\\mathbf{h}_{\\mathrm{cls}}) + b')+
+    Kb('\\mathcal{L} = \\tfrac{1}{B}\\textstyle\\sum_i(\\hat{y}_i - y_i)^2')+'</div>'+
+    '<div class="param-count">193 parameters</div>';
+}
+function detailDecQueries(){
+  return '<div class="rp-title">Decoder Queries</div>'+
+    '<div class="rp-subtitle">5 learned vectors -- one per future timestep</div>'+
+    '<div class="rp-prose">Five independent 64-dim query vectors are learned from scratch. Each represents a different "question" about the encoder memory. Decoder positional embeddings tell the model which future step each query represents.</div>'+
+    '<div class="eq-wrap eq-wrap-dec">'+Kb('\\mathbf{Q}_d = \\mathbf{E}_{\\mathrm{query}} + \\mathbf{PE}^{\\mathrm{dec}}, \\quad \\in \\mathbb{R}^{5 \\times 64}')+'<div class="eq-caption">E<sub>query</sub>: 5&times;64 &ensp; PE<sup>dec</sup>: 5&times;64 -- separate from encoder PE</div></div>'+
+    '<div class="param-count">640 parameters -- query_embed(5&times;64) + pos_emb_dec(5&times;64)</div>';
+}
+function detailDecLayer(n){
+  return '<div class="rp-title">Decoder Layer '+n+'</div>'+
+    '<div class="rp-subtitle">Self-attention + cross-attention + FFN</div>'+
+    '<div class="rp-prose">Each decoder layer runs <strong>three</strong> sub-blocks. The red cross-attention heatmap is the key visualisation: rows are the 5 future steps, columns are the 20 encoder positions. Hover over cells to see exact weights. Notice t+1 attending more to recent days vs t+5 spreading across the full history.</div>'+
+    '<div class="eq-wrap eq-wrap-dec">'+Kb('\\mathbf{H}_d^{\\prime} = \\mathbf{H}_d + \\mathrm{Self\\ MHA}(\\mathrm{LN}(\\mathbf{H}_d))')+
+    Kb('\\mathbf{H}_d^{\\prime\\prime} = \\mathbf{H}_d^{\\prime} + \\underbrace{\\mathrm{Cross\\ MHA}(\\mathrm{LN}(\\mathbf{H}_d^{\\prime}),\\ \\mathrm{memory})}_{5 \\times 20\\ \\text{attention}}')+
+    Kb('\\mathbf{H}_d^{\\prime\\prime\\prime} = \\mathbf{H}_d^{\\prime\\prime} + \\mathrm{FFN}(\\mathrm{LN}(\\mathbf{H}_d^{\\prime\\prime}))')+'<div class="eq-caption">Q from decoder (5) &ensp; K,V from encoder memory (20)</div></div>'+
+    '<div class="param-count">49,536 parameters</div>'+
+    '<div class="ref-note">Vaswani et al. (2017) Attention Is All You Need. NeurIPS.</div>';
+}
+function detailHead5(){
+  return '<div class="rp-title">5-Step Prediction Head</div>'+
+    '<div class="rp-subtitle">One shared head applied to all 5 decoder outputs</div>'+
+    '<div class="rp-prose">A single LayerNorm + Linear is applied independently to each of the 5 decoder position vectors, producing 5 prices at once. Error increases with horizon: t+5 is systematically harder than t+1.</div>'+
+    '<div class="eq-wrap eq-wrap-dec">'+Kb('\\hat{\\mathbf{y}} = \\mathbf{W}^\\top \\mathrm{LN}(\\mathbf{H}_d^{(2)}) + b \\in \\mathbb{R}^{5}')+
+    Kb('\\mathcal{L} = \\frac{1}{B\\cdot 5}\\sum_{i}\\sum_{p=1}^{5}(\\hat{y}_{i,p}-y_{i,p})^2')+'<div class="eq-caption">shared weights -- same head applied per position</div></div>'+
+    '<div class="param-count">193 parameters -- shared across all 5 output steps</div>';
+}
+
+var DETAIL_ENC={input:detailSharedInput,proj:detailSharedProj,cls:detailEncCLS,
+  pe:function(){return detailEncPE(true);},enc1:function(){return detailEncLayer(1);},
+  enc2:function(){return detailEncLayer(2);},clsext:detailCLSExtract,head1:detailHead1};
+var DETAIL_SEQ={input:detailSharedInput,proj:detailSharedProj,
+  encpe:function(){return detailEncPE(false);},enc1:function(){return detailEncLayer(1);},
+  enc2:function(){return detailEncLayer(2);},queries:detailDecQueries,
+  dec1:function(){return detailDecLayer(1);},dec2:function(){return detailDecLayer(2);},head5:detailHead5};
+
+// ========================================================================
+// Select layer
+// ========================================================================
+function selectLayer(id){
+  state.selected=id;
+  document.querySelectorAll('.layer-col').forEach(function(el){el.classList.remove('active');});
+  var col=document.getElementById('col-'+id);if(col)col.classList.add('active');
+  var fns=state.model==='encoder'?DETAIL_ENC:DETAIL_SEQ;
+  var fn=fns[id];
+  if(fn)document.getElementById('rpanel-content').innerHTML=fn();
+  var layers=currentLayers();
+  var idx=layers.findIndex(function(l){return l.id===id;});
+  if(idx>=0){
+    var lbl=document.getElementById('section3d-label');
+    if(lbl)lbl.textContent='3D tensor -- '+layers[idx].name+' '+layers[idx].shapeOut;
+    draw3DTensor(idx);
+  }
+}
+
+// ========================================================================
+// Model switch
+// ========================================================================
+function switchModel(name){
+  if(state.model===name)return;
+  state.model=name;state.selected='input';
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.model===name);});
+  buildIntro();buildLeftPanel();buildFlow();redrawAll();attachInteractivity();selectLayer('input');
+}
+
+// ========================================================================
+// Controls
+// ========================================================================
+document.getElementById('epochSlider').addEventListener('input',function(){state.epoch=+this.value;document.getElementById('epochVal').textContent=state.epoch;redrawAll();buildLeftPanel();});
+document.getElementById('headSlider').addEventListener('input',function(){state.head=+this.value;document.getElementById('headVal').textContent=state.head+1;redrawAll();});
+function navSample(d){state.sample=Math.max(0,Math.min(31,state.sample+d));document.getElementById('sampleVal').textContent=state.sample;redrawAll();buildLeftPanel();}
+
+// ========================================================================
+// Init
+// ========================================================================
+if(!Array.prototype.findIndex){Array.prototype.findIndex=function(fn){for(var i=0;i<this.length;i++)if(fn(this[i]))return i;return -1;};}
+buildIntro();buildLeftPanel();buildFlow();redrawAll();attachInteractivity();selectLayer('input');
+</script>
+</body>
+</html>
